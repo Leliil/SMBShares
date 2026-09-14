@@ -15,7 +15,6 @@ SETLOCAL ENABLEDELAYEDEXPANSION
 NET SESSION >nul 2>&1
 IF %ERRORLEVEL% NEQ 0 (
     echo [ERROR] Требуются права администратора!
-    pause
     exit /b 1
 )
 
@@ -45,7 +44,7 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" /v Auto
 
 :: 3. Удаление скрытых shares
 for %%d in (C D E F G H I J K L M N O P Q R S T U V W X Y Z) do (
-    net share %%d$ /delete /y >nul 2>&1
+    net share %%d$ >nul 2>&1 && net share %%d$ /delete /y >nul 2>&1
 )
 net share ADMIN$ /delete /y >nul 2>&1
 net share IPC$ /delete /y >nul 2>&1
