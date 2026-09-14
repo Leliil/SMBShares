@@ -1,0 +1,9 @@
+```
+# System files
+*.tmp
+
+# Environment
+.env
+.env.local
+*.env.*
+```

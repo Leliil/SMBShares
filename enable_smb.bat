@@ -15,7 +15,6 @@ SETLOCAL ENABLEDELAYEDEXPANSION
 NET SESSION >nul 2>&1
 IF %ERRORLEVEL% NEQ 0 (
     echo [ERROR] Требуются права администратора!
-    pause
     exit /b 1
 )
 
@@ -53,5 +52,4 @@ start explorer.exe >nul 2>&1
 :: ====================
 echo [SUCCESS] SMB-ресурсы успешно восстановлены!
 echo [INFO] Стандартные shares будут созданы при перезагрузке
-timeout /t 5 /nobreak >nul
 exit /b 0
