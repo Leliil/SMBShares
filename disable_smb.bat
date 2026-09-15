@@ -15,7 +15,6 @@ SETLOCAL ENABLEDELAYEDEXPANSION
 NET SESSION >nul 2>&1
 IF %ERRORLEVEL% NEQ 0 (
     echo [ERROR] Требуются права администратора!
-    pause
     exit /b 1
 )
 
@@ -64,5 +63,4 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v No
 :: ====================
 echo [SUCCESS] Операция завершена успешно!
 echo [INFO] Для применения изменений требуется перезагрузка
-timeout /t 5 /nobreak >nul
 exit /b 0
