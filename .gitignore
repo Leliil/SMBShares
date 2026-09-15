@@ -1,5 +1,7 @@
 ```
-# Batch files related to SMB configuration
-disable_smb.bat
-enable_smb.bat
+# System files
+*.tmp
+
+# Logs
+*.log
 ```
