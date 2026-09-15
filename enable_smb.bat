@@ -15,7 +15,6 @@ SETLOCAL ENABLEDELAYEDEXPANSION
 NET SESSION >nul 2>&1
 IF %ERRORLEVEL% NEQ 0 (
     echo [ERROR] Требуются права администратора!
-    pause
     exit /b 1
 )
 
@@ -43,7 +42,11 @@ echo [INFO] Восстановление контекстного меню...
 reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v NoSharingContextMenu /f >nul 2>&1
 reg delete "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v NoSharingContextMenu /f >nul 2>&1
 
-:: 5. Перезапуск проводника
+:: 5. Восстановление NTLMv1 (возврат к значению по умолчанию)
+echo [INFO] Восстановление настроек NTLM...
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v "LmCompatibilityLevel" /t REG_DWORD /d 3 /f >nul 2>&1
+
+:: 6. Перезапуск проводника
 echo [INFO] Перезапуск проводника...
 taskkill /f /im explorer.exe >nul 2>&1
 start explorer.exe >nul 2>&1
@@ -53,5 +56,4 @@ start explorer.exe >nul 2>&1
 :: ====================
 echo [SUCCESS] SMB-ресурсы успешно восстановлены!
 echo [INFO] Стандартные shares будут созданы при перезагрузке
-timeout /t 5 /nobreak >nul
 exit /b 0

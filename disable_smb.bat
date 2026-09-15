@@ -21,11 +21,10 @@ IF %ERRORLEVEL% NEQ 0 (
 :: --------------------------
 :: Проверка на Windows Server
 :: --------------------------
-for /f "tokens=4-5 delims=[]. " %%i in ('ver') do (
-    if /i "%%i"=="Server" (
-        echo [INFO] Скрипт пропускает серверные ОС
-        exit /b 0
-    )
+wmic os get Caption | find /i "Server" >nul 2>&1
+IF NOT ERRORLEVEL 1 (
+    echo [INFO] Скрипт пропускает серверные ОС
+    exit /b 0
 )
 
 :: ====================
@@ -58,10 +57,13 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" /v "SMB
 reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v NoSharingContextMenu /t REG_DWORD /d 1 /f >nul 2>&1
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v NoSharingContextMenu /t REG_DWORD /d 1 /f >nul 2>&1
 
+:: 6. Отключение NTLMv1
+echo [INFO] Отключение NTLMv1...
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v "LmCompatibilityLevel" /t REG_DWORD /d 5 /f >nul 2>&1
+
 :: ====================
 :: Завершение работы
 :: ====================
 echo [SUCCESS] Операция завершена успешно!
 echo [INFO] Для применения изменений требуется перезагрузка
-timeout /t 5 /nobreak >nul
 exit /b 0
