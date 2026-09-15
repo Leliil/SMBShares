@@ -18,8 +18,17 @@ IF %ERRORLEVEL% NEQ 0 (
     exit /b 1
 )
 
+:: --------------------------
+:: Проверка на Windows Server
+:: --------------------------
+wmic os get Caption | find /i "Server" >nul 2>&1
+IF NOT ERRORLEVEL 1 (
+    echo [INFO] Обнаружена серверная ОС. Восстановление настроек подписывания...
+    goto SERVER_CONFIG
+)
+
 :: ====================
-:: Основные операции
+:: Конфигурация для клиентских ОС
 :: ====================
 
 :: 1. Включение службы LanmanServer
@@ -45,6 +54,52 @@ reg delete "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v
 :: 5. Восстановление NTLMv1 (возврат к значению по умолчанию)
 echo [INFO] Восстановление настроек NTLM...
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v "LmCompatibilityLevel" /t REG_DWORD /d 3 /f >nul 2>&1
+
+:: 6. Сброс обязательного подписывания SMB (Клиент)
+echo [INFO] Сброс настроек подписывания SMB...
+reg delete "HKLM\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters" /v "RequireSecuritySignature" /f >nul 2>&1
+reg delete "HKLM\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters" /v "EnableSecuritySignature" /f >nul 2>&1
+
+:: 7. Сброс обязательного подписывания LDAP
+echo [INFO] Сброс настроек подписывания LDAP...
+reg delete "HKLM\SYSTEM\CurrentControlSet\Services\LDAP" /v "LDAPClientIntegrity" /f >nul 2>&1
+
+:: Перезапуск служб для применения настроек
+net stop lanmanworkstation /y >nul 2>&1
+net start lanmanworkstation >nul 2>&1
+
+goto END_CONFIG
+
+:SERVER_CONFIG
+:: ====================
+:: Восстановление настроек для Windows Server
+:: ====================
+echo [INFO] Сброс настроек подписывания SMB и LDAP для сервера...
+
+:: SMB Клиент - отмена обязательного подписывания
+reg delete "HKLM\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters" /v "RequireSecuritySignature" /f >nul 2>&1
+reg delete "HKLM\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters" /v "EnableSecuritySignature" /f >nul 2>&1
+
+:: SMB Сервер - отмена обязательного подписывания
+reg delete "HKLM\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" /v "RequireSecuritySignature" /f >nul 2>&1
+reg delete "HKLM\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" /v "EnableSecuritySignature" /f >nul 2>&1
+
+:: LDAP - сброс подписывания
+reg delete "HKLM\SYSTEM\CurrentControlSet\Services\LDAP" /v "LDAPClientIntegrity" /f >nul 2>&1
+
+:: Восстановление NTLM (возврат к значению по умолчанию)
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v "LmCompatibilityLevel" /t REG_DWORD /d 3 /f >nul 2>&1
+
+:: Перезапуск служб для применения настроек
+net stop lanmanworkstation /y >nul 2>&1
+net start lanmanworkstation >nul 2>&1
+net stop lanmanserver /y >nul 2>&1
+net start lanmanserver >nul 2>&1
+
+echo [SUCCESS] Настройки подписывания сброшены для сервера
+goto END_CONFIG
+
+:END_CONFIG
 
 :: 6. Перезапуск проводника
 echo [INFO] Перезапуск проводника...

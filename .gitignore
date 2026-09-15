@@ -1,39 +1,21 @@
 ```
-# System files
-*.tmp
+# Logs and temp files
 *.log
+*.tmp
+*.swp
 
 # Environment
 .env
 .env.local
-*.env.*
+.env.*
 
 # Editors
 .vscode/
 .idea/
 
-# Dependencies
-node_modules/
-venv/
-.venv/
-__pycache__/
-.mypy_cache/
-.pytest_cache/
-dist/
-build/
-target/
-.gradle/
-
-# Compiled files
-*.pyc
-*.class
-*.o
-*.exe
-*.dll
-*.so
-*.a
-*.obj
-*.out
+# System files
+.DS_Store
+Thumbs.db
 
 # Compressed files
 *.zip
@@ -54,15 +36,4 @@ target/
 *.Z
 *.lz
 *.lzo
-
-# Coverage
-coverage/
-htmlcov/
-.coverage
-
-# Other common ignores
-*.swp
-*.swo
-.DS_Store
-Thumbs.db
 ```

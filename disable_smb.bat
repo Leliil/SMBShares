@@ -23,12 +23,12 @@ IF %ERRORLEVEL% NEQ 0 (
 :: --------------------------
 wmic os get Caption | find /i "Server" >nul 2>&1
 IF NOT ERRORLEVEL 1 (
-    echo [INFO] Скрипт пропускает серверные ОС
-    exit /b 0
+    echo [INFO] Обнаружена серверная ОС. Применение настроек подписывания...
+    goto SERVER_CONFIG
 )
 
 :: ====================
-:: Основные операции
+:: Конфигурация для клиентских ОС
 :: ====================
 
 :: 1. Остановка службы LanmanServer
@@ -48,10 +48,11 @@ for %%d in (C D E F G H I J K L M N O P Q R S T U V W X Y Z) do (
 net share ADMIN$ /delete /y >nul 2>&1
 net share IPC$ /delete /y >nul 2>&1
 
-:: 4. Дополнительные настройки безопасности
+:: 4. Отключение SMBv1, SMBv2 и SMBv3
 echo [INFO] Применение дополнительных настроек...
 reg add "HKLM\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" /v "SMB1" /t REG_DWORD /d 0 /f >nul 2>&1
 reg add "HKLM\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" /v "SMB2" /t REG_DWORD /d 0 /f >nul 2>&1
+reg add "HKLM\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" /v "SMB3" /t REG_DWORD /d 0 /f >nul 2>&1
 
 :: 5. Удаление пункта "Общий доступ"
 reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v NoSharingContextMenu /t REG_DWORD /d 1 /f >nul 2>&1
@@ -60,6 +61,52 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v No
 :: 6. Отключение NTLMv1
 echo [INFO] Отключение NTLMv1...
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v "LmCompatibilityLevel" /t REG_DWORD /d 5 /f >nul 2>&1
+
+:: 7. Обязательное подписывание SMB (Клиент)
+echo [INFO] Включение обязательного подписывания SMB...
+reg add "HKLM\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters" /v "RequireSecuritySignature" /t REG_DWORD /d 1 /f >nul 2>&1
+reg add "HKLM\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters" /v "EnableSecuritySignature" /t REG_DWORD /d 1 /f >nul 2>&1
+
+:: 8. Обязательное подписывание LDAP
+echo [INFO] Включение обязательного подписывания LDAP...
+reg add "HKLM\SYSTEM\CurrentControlSet\Services\LDAP" /v "LDAPClientIntegrity" /t REG_DWORD /d 2 /f >nul 2>&1
+
+:: Перезапуск служб для применения настроек
+net stop lanmanworkstation /y >nul 2>&1
+net start lanmanworkstation >nul 2>&1
+
+goto END_CONFIG
+
+:SERVER_CONFIG
+:: ====================
+:: Конфигурация для Windows Server
+:: ====================
+echo [INFO] Настройка подписывания SMB и LDAP для сервера...
+
+:: SMB Клиент - обязательное подписывание
+reg add "HKLM\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters" /v "RequireSecuritySignature" /t REG_DWORD /d 1 /f >nul 2>&1
+reg add "HKLM\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters" /v "EnableSecuritySignature" /t REG_DWORD /d 1 /f >nul 2>&1
+
+:: SMB Сервер - обязательное подписывание
+reg add "HKLM\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" /v "RequireSecuritySignature" /t REG_DWORD /d 1 /f >nul 2>&1
+reg add "HKLM\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" /v "EnableSecuritySignature" /t REG_DWORD /d 1 /f >nul 2>&1
+
+:: LDAP - обязательное подписывание
+reg add "HKLM\SYSTEM\CurrentControlSet\Services\LDAP" /v "LDAPClientIntegrity" /t REG_DWORD /d 2 /f >nul 2>&1
+
+:: Отключение NTLMv1
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v "LmCompatibilityLevel" /t REG_DWORD /d 5 /f >nul 2>&1
+
+:: Перезапуск служб для применения настроек
+net stop lanmanworkstation /y >nul 2>&1
+net start lanmanworkstation >nul 2>&1
+net stop lanmanserver /y >nul 2>&1
+net start lanmanserver >nul 2>&1
+
+echo [SUCCESS] Настройки подписывания применены для сервера
+goto END_CONFIG
+
+:END_CONFIG
 
 :: ====================
 :: Завершение работы
