@@ -21,11 +21,10 @@ IF %ERRORLEVEL% NEQ 0 (
 :: --------------------------
 :: Проверка на Windows Server
 :: --------------------------
-for /f "tokens=4-5 delims=[]. " %%i in ('ver') do (
-    if /i "%%i"=="Server" (
-        echo [INFO] Скрипт пропускает серверные ОС
-        exit /b 0
-    )
+wmic os get Caption | find /i "Server" >nul 2>&1
+IF NOT ERRORLEVEL 1 (
+    echo [INFO] Скрипт пропускает серверные ОС
+    exit /b 0
 )
 
 :: ====================
