@@ -72,9 +72,21 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters" /v
 echo [INFO] Включение обязательного подписывания LDAP...
 reg add "HKLM\SYSTEM\CurrentControlSet\Services\LDAP" /v "LDAPClientIntegrity" /t REG_DWORD /d 2 /f >nul 2>&1
 
+:: 9. Отключение LLMNR (Link-Local Multicast Name Resolution)
+echo [INFO] Отключение LLMNR...
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows NT\DNSClient" /v "EnableMulticast" /t REG_DWORD /d 0 /f >nul 2>&1
+
+:: 10. Отключение NBT-NS (NetBIOS over TCP/IP)
+echo [INFO] Отключение NBT-NS...
+for /f "tokens=*" %%i in ('wmic nic where "NetEnabled=true" get InterfaceIndex ^| findstr [0-9]') do (
+    reg add "HKLM\SYSTEM\CurrentControlSet\Services\NetBT\Parameters\Interfaces\Tcpip_{%%i}" /v "NetbiosOptions" /t REG_DWORD /d 2 /f >nul 2>&1
+)
+
 :: Перезапуск служб для применения настроек
 net stop lanmanworkstation /y >nul 2>&1
 net start lanmanworkstation >nul 2>&1
+ipconfig /flushdns >nul 2>&1
+nbtstat -R >nul 2>&1
 
 goto END_CONFIG
 
@@ -98,11 +110,21 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Services\LDAP" /v "LDAPClientIntegrity" /
 :: Отключение NTLMv1
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v "LmCompatibilityLevel" /t REG_DWORD /d 5 /f >nul 2>&1
 
+:: Отключение LLMNR
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows NT\DNSClient" /v "EnableMulticast" /t REG_DWORD /d 0 /f >nul 2>&1
+
+:: Отключение NBT-NS для всех активных интерфейсов
+for /f "tokens=*" %%i in ('wmic nic where "NetEnabled=true" get InterfaceIndex ^| findstr [0-9]') do (
+    reg add "HKLM\SYSTEM\CurrentControlSet\Services\NetBT\Parameters\Interfaces\Tcpip_{%%i}" /v "NetbiosOptions" /t REG_DWORD /d 2 /f >nul 2>&1
+)
+
 :: Перезапуск служб для применения настроек
 net stop lanmanworkstation /y >nul 2>&1
 net start lanmanworkstation >nul 2>&1
 net stop lanmanserver /y >nul 2>&1
 net start lanmanserver >nul 2>&1
+ipconfig /flushdns >nul 2>&1
+nbtstat -R >nul 2>&1
 
 echo [SUCCESS] Настройки подписывания применены для сервера
 goto END_CONFIG

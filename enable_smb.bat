@@ -64,9 +64,21 @@ reg delete "HKLM\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters"
 echo [INFO] Сброс настроек подписывания LDAP...
 reg delete "HKLM\SYSTEM\CurrentControlSet\Services\LDAP" /v "LDAPClientIntegrity" /f >nul 2>&1
 
+:: 8. Восстановление LLMNR (удаление политики)
+echo [INFO] Восстановление настроек LLMNR...
+reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows NT\DNSClient" /v "EnableMulticast" /f >nul 2>&1
+
+:: 9. Восстановление NBT-NS (удаление настроек для всех интерфейсов)
+echo [INFO] Восстановление настроек NBT-NS...
+for /f "tokens=*" %%i in ('wmic nic where "NetEnabled=true" get InterfaceIndex ^| findstr [0-9]') do (
+    reg delete "HKLM\SYSTEM\CurrentControlSet\Services\NetBT\Parameters\Interfaces\Tcpip_{%%i}" /v "NetbiosOptions" /f >nul 2>&1
+)
+
 :: Перезапуск служб для применения настроек
 net stop lanmanworkstation /y >nul 2>&1
 net start lanmanworkstation >nul 2>&1
+ipconfig /flushdns >nul 2>&1
+nbtstat -R >nul 2>&1
 
 goto END_CONFIG
 
@@ -90,11 +102,21 @@ reg delete "HKLM\SYSTEM\CurrentControlSet\Services\LDAP" /v "LDAPClientIntegrity
 :: Восстановление NTLM (возврат к значению по умолчанию)
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v "LmCompatibilityLevel" /t REG_DWORD /d 3 /f >nul 2>&1
 
+:: Восстановление LLMNR
+reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows NT\DNSClient" /v "EnableMulticast" /f >nul 2>&1
+
+:: Восстановление NBT-NS
+for /f "tokens=*" %%i in ('wmic nic where "NetEnabled=true" get InterfaceIndex ^| findstr [0-9]') do (
+    reg delete "HKLM\SYSTEM\CurrentControlSet\Services\NetBT\Parameters\Interfaces\Tcpip_{%%i}" /v "NetbiosOptions" /f >nul 2>&1
+)
+
 :: Перезапуск служб для применения настроек
 net stop lanmanworkstation /y >nul 2>&1
 net start lanmanworkstation >nul 2>&1
 net stop lanmanserver /y >nul 2>&1
 net start lanmanserver >nul 2>&1
+ipconfig /flushdns >nul 2>&1
+nbtstat -R >nul 2>&1
 
 echo [SUCCESS] Настройки подписывания сброшены для сервера
 goto END_CONFIG
